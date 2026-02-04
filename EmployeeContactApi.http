@@ -1,0 +1,26 @@
+@EmployeeContactApi_HostAddress = http://localhost:5255
+
+### 직원 목록 조회 (페이징)
+GET {{EmployeeContactApi_HostAddress}}/api/employee?page=0&pageSize=10
+Accept: application/json
+
+### 이름으로 직원 조회
+GET {{EmployeeContactApi_HostAddress}}/api/employee/김철수
+Accept: application/json
+
+### 직원 등록 (JSON)
+POST {{EmployeeContactApi_HostAddress}}/api/employee
+Content-Type: application/json
+
+[
+  {"name":"김철수", "email":"charles@clovf.com", "tel":"01075312468", "joined":"2018-03-07"},
+  {"name":"박영희", "email":"matilda@clovf.com", "tel":"01087654321", "joined":"2021-04-28"}
+]
+
+### 직원 등록 (CSV)
+POST {{EmployeeContactApi_HostAddress}}/api/employee
+Content-Type: text/csv
+
+홍길동, kildong.hong@clovf.com, 01012345678, 2015.08.15
+
+###
