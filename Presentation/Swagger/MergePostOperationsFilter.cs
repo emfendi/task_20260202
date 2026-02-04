@@ -25,7 +25,7 @@ public class MergePostOperationsFilter : IDocumentFilter
         if (!swaggerDoc.Paths.TryGetValue("/api/employee", out var pathItem))
             return;
 
-        if (pathItem.Operations.TryGetValue(HttpMethod.Post, out var postOperation))
+        if (pathItem.Operations?.TryGetValue(HttpMethod.Post, out var postOperation) == true && postOperation is not null)
         {
             // Merge all content types from all POST operations
             var mergedRequestBody = new OpenApiRequestBody

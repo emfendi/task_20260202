@@ -7,6 +7,7 @@ namespace EmployeeContactApi.Infrastructure.Entities;
 
 [Table("employees")]
 [Index(nameof(Name), Name = "idx_employee_name")]
+[Index(nameof(Email), Name = "idx_employee_email", IsUnique = true)]
 public class EmployeeEntity
 {
     [Key]

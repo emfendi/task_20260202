@@ -1,8 +1,9 @@
 using EmployeeContactApi.Application.Commands.Dto;
+using EmployeeContactApi.Application.Interfaces;
 using EmployeeContactApi.Domain.Exceptions;
 using EmployeeContactApi.Domain.Models;
 using EmployeeContactApi.Domain.ValueObjects;
-using EmployeeContactApi.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace EmployeeContactApi.Application.Commands.Handlers;
 
@@ -50,10 +51,28 @@ public class CreateEmployeeCommandHandler : ICreateEmployeeCommandHandler
         }
 
         var employees = commandList.Select(CreateEmployee).ToList();
-        var count = await _commandRepository.SaveAllAsync(employees, ct);
 
-        _logger.LogInformation("Batch creation completed: {Count} employees created", count);
-        return count;
+        try
+        {
+            var count = await _commandRepository.SaveAllAsync(employees, ct);
+            _logger.LogInformation("Batch creation completed: {Count} employees created", count);
+            return count;
+        }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            // Race condition: another request inserted the same email between check and save
+            _logger.LogWarning(ex, "Duplicate email constraint violation during save");
+            throw new DuplicateEmailException(["Duplicate email detected (concurrent request)"]);
+        }
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        // Check for common unique constraint violation patterns across different databases
+        var message = ex.InnerException?.Message ?? ex.Message;
+        return message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("duplicate", StringComparison.OrdinalIgnoreCase) ||
+               message.Contains("IX_") || message.Contains("idx_");
     }
 
     private static Employee CreateEmployee(CreateEmployeeCommand command)

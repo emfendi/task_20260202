@@ -18,17 +18,20 @@ public class EmployeeController : ControllerBase
     private readonly IEmployeeQueryHandler _queryHandler;
     private readonly EmployeeParserService _parserService;
     private readonly ILogger<EmployeeController> _logger;
+    private readonly int _maxEmployeesPerRequest;
 
     public EmployeeController(
         ICreateEmployeeCommandHandler commandHandler,
         IEmployeeQueryHandler queryHandler,
         EmployeeParserService parserService,
-        ILogger<EmployeeController> logger)
+        ILogger<EmployeeController> logger,
+        IConfiguration configuration)
     {
         _commandHandler = commandHandler;
         _queryHandler = queryHandler;
         _parserService = parserService;
         _logger = logger;
+        _maxEmployeesPerRequest = configuration.GetValue<int>("FileUpload:MaxEmployeesPerRequest", 10000);
     }
 
     /// <summary>
@@ -85,6 +88,12 @@ public class EmployeeController : ControllerBase
         using var reader = new StreamReader(file.OpenReadStream());
         var content = await reader.ReadToEndAsync(ct);
         var commands = _parserService.Parse(content, file.ContentType, file.FileName);
+
+        if (commands.Count > _maxEmployeesPerRequest)
+        {
+            return BadRequest(new ErrorResponse(400, "Bad Request", $"Too many employees. Maximum allowed: {_maxEmployeesPerRequest}"));
+        }
+
         var count = await _commandHandler.HandleBatchAsync(commands, ct);
 
         _logger.LogInformation("<< [EmployeeController.CreateEmployeesFromFile] Completed with count={Count}", count);
@@ -103,6 +112,11 @@ public class EmployeeController : ControllerBase
         CancellationToken ct = default)
     {
         _logger.LogInformation(">> [EmployeeController.CreateEmployeesFromJson] Request received with {Count} employees", requests.Count);
+
+        if (requests.Count > _maxEmployeesPerRequest)
+        {
+            return BadRequest(new ErrorResponse(400, "Bad Request", $"Too many employees. Maximum allowed: {_maxEmployeesPerRequest}"));
+        }
 
         var commands = requests.Select(r => new CreateEmployeeCommand(
             name: r.Name,
@@ -131,6 +145,12 @@ public class EmployeeController : ControllerBase
         _logger.LogInformation(">> [EmployeeController.CreateEmployeesFromCsvBody] Request received");
 
         var commands = _parserService.Parse(csvContent, "text/csv", null);
+
+        if (commands.Count > _maxEmployeesPerRequest)
+        {
+            return BadRequest(new ErrorResponse(400, "Bad Request", $"Too many employees. Maximum allowed: {_maxEmployeesPerRequest}"));
+        }
+
         var count = await _commandHandler.HandleBatchAsync(commands, ct);
 
         _logger.LogInformation("<< [EmployeeController.CreateEmployeesFromCsvBody] Completed with count={Count}", count);

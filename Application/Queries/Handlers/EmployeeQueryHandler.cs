@@ -1,5 +1,5 @@
 using EmployeeContactApi.Application.Queries.Dto;
-using EmployeeContactApi.Infrastructure.Persistence;
+using EmployeeContactApi.Application.Interfaces;
 
 namespace EmployeeContactApi.Application.Queries.Handlers;
 

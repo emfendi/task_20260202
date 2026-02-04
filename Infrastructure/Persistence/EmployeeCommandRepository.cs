@@ -1,3 +1,4 @@
+using EmployeeContactApi.Application.Interfaces;
 using EmployeeContactApi.Domain.Models;
 using EmployeeContactApi.Infrastructure.Entities;
 using Microsoft.EntityFrameworkCore;

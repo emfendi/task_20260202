@@ -1,6 +1,6 @@
 using EmployeeContactApi.Domain.Models;
 
-namespace EmployeeContactApi.Infrastructure.Persistence;
+namespace EmployeeContactApi.Application.Interfaces;
 
 public interface IEmployeeQueryRepository
 {

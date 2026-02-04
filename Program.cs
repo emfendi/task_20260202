@@ -1,4 +1,5 @@
 using EmployeeContactApi.Application.Commands.Handlers;
+using EmployeeContactApi.Application.Interfaces;
 using EmployeeContactApi.Application.Queries.Handlers;
 using EmployeeContactApi.Application.Services;
 using EmployeeContactApi.Infrastructure.Persistence;
@@ -8,6 +9,12 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load configuration
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -26,6 +33,17 @@ builder.Services.AddControllers(options =>
     options.InputFormatters.Insert(0, new EmployeeContactApi.Presentation.Middleware.TextPlainInputFormatter());
 });
 
+// Configure request size limits
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = builder.Configuration.GetValue<long>("FileUpload:MaxFileSizeBytes", 10 * 1024 * 1024);
+});
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = builder.Configuration.GetValue<long>("FileUpload:MaxFileSizeBytes", 10 * 1024 * 1024);
+});
+
 // Configure Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -36,9 +54,14 @@ builder.Services.AddSwaggerGen(options =>
     options.DocumentFilter<MergePostOperationsFilter>();
 });
 
-// Configure EF Core with In-Memory Database
+// Configure EF Core (In-Memory for development, configure production DB as needed)
+// To use SQL Server in production, add Microsoft.EntityFrameworkCore.SqlServer package
+// and uncomment: options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseInMemoryDatabase("EmployeeDb"));
+
+// Add Health Checks
+builder.Services.AddHealthChecks();
 
 // Register repositories (CQRS pattern)
 builder.Services.AddScoped<IEmployeeCommandRepository, EmployeeCommandRepository>();
@@ -75,6 +98,7 @@ if (app.Environment.IsDevelopment())
 app.UseSerilogRequestLogging();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 // Ensure database is created
 using (var scope = app.Services.CreateScope())
