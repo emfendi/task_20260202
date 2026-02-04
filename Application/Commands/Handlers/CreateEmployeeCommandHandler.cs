@@ -22,7 +22,7 @@ public class CreateEmployeeCommandHandler : ICreateEmployeeCommandHandler
         _logger = logger;
     }
 
-    public async Task<int> HandleBatchAsync(IEnumerable<CreateEmployeeCommand> commands)
+    public async Task<int> HandleBatchAsync(IEnumerable<CreateEmployeeCommand> commands, CancellationToken ct = default)
     {
         var commandList = commands.ToList();
         _logger.LogDebug("Creating {Count} employees in batch", commandList.Count);
@@ -41,7 +41,7 @@ public class CreateEmployeeCommandHandler : ICreateEmployeeCommandHandler
         }
 
         // Check for duplicates against existing data
-        var existingEmails = await _queryRepository.FindExistingEmailsAsync(inputEmails);
+        var existingEmails = await _queryRepository.FindExistingEmailsAsync(inputEmails, ct);
 
         if (existingEmails.Count > 0)
         {
@@ -50,7 +50,7 @@ public class CreateEmployeeCommandHandler : ICreateEmployeeCommandHandler
         }
 
         var employees = commandList.Select(CreateEmployee).ToList();
-        var count = await _commandRepository.SaveAllAsync(employees);
+        var count = await _commandRepository.SaveAllAsync(employees, ct);
 
         _logger.LogInformation("Batch creation completed: {Count} employees created", count);
         return count;

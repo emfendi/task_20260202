@@ -4,5 +4,5 @@ namespace EmployeeContactApi.Application.Commands.Handlers;
 
 public interface ICreateEmployeeCommandHandler
 {
-    Task<int> HandleBatchAsync(IEnumerable<CreateEmployeeCommand> commands);
+    Task<int> HandleBatchAsync(IEnumerable<CreateEmployeeCommand> commands, CancellationToken ct = default);
 }

@@ -14,17 +14,17 @@ public class EmployeeQueryRepository : IEmployeeQueryRepository
         _logger = logger;
     }
 
-    public async Task<(List<Employee> Items, int TotalCount)> GetAllAsync(int page, int pageSize)
+    public async Task<(List<Employee> Items, int TotalCount)> GetAllAsync(int page, int pageSize, CancellationToken ct = default)
     {
         _logger.LogDebug("Querying all employees: page={Page}, pageSize={PageSize}", page, pageSize);
 
-        var totalCount = await _context.Employees.CountAsync();
+        var totalCount = await _context.Employees.CountAsync(ct);
         var entities = await _context.Employees
             .OrderBy(e => e.Id)
             .Skip(page * pageSize)
             .Take(pageSize)
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var items = entities.Select(e => e.ToModel()).ToList();
 
@@ -32,14 +32,14 @@ public class EmployeeQueryRepository : IEmployeeQueryRepository
         return (items, totalCount);
     }
 
-    public async Task<List<Employee>> GetByNameAsync(string name)
+    public async Task<List<Employee>> GetByNameAsync(string name, CancellationToken ct = default)
     {
         _logger.LogDebug("Querying employees by name: {Name}", name);
 
         var entities = await _context.Employees
             .Where(e => e.Name == name)
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var employees = entities.Select(e => e.ToModel()).ToList();
 
@@ -47,7 +47,7 @@ public class EmployeeQueryRepository : IEmployeeQueryRepository
         return employees;
     }
 
-    public async Task<List<string>> FindExistingEmailsAsync(IEnumerable<string> emails)
+    public async Task<List<string>> FindExistingEmailsAsync(IEnumerable<string> emails, CancellationToken ct = default)
     {
         var emailList = emails.ToList();
         _logger.LogDebug("Checking for existing emails: {Count} emails", emailList.Count);
@@ -55,7 +55,7 @@ public class EmployeeQueryRepository : IEmployeeQueryRepository
         var existingEmails = await _context.Employees
             .Where(e => emailList.Contains(e.Email))
             .Select(e => e.Email)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         _logger.LogDebug("Found {Count} existing emails in database", existingEmails.Count);
         return existingEmails;

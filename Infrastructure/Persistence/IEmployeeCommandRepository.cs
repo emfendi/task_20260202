@@ -4,5 +4,5 @@ namespace EmployeeContactApi.Infrastructure.Persistence;
 
 public interface IEmployeeCommandRepository
 {
-    Task<int> SaveAllAsync(IEnumerable<Employee> employees);
+    Task<int> SaveAllAsync(IEnumerable<Employee> employees, CancellationToken ct = default);
 }

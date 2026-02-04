@@ -39,10 +39,11 @@ public class EmployeeController : ControllerBase
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<EmployeePageResponse>> GetAllEmployees(
         [FromQuery][Range(0, int.MaxValue)] int page = 0,
-        [FromQuery][Range(1, 100)] int pageSize = 10)
+        [FromQuery][Range(1, 100)] int pageSize = 10,
+        CancellationToken ct = default)
     {
         _logger.LogInformation(">> [EmployeeController.GetAllEmployees] Request received with page={Page}, pageSize={PageSize}", page, pageSize);
-        var result = await _queryHandler.FindAllAsync(page, pageSize);
+        var result = await _queryHandler.FindAllAsync(page, pageSize, ct);
         _logger.LogInformation("<< [EmployeeController.GetAllEmployees] Completed");
         return Ok(result);
     }
@@ -53,10 +54,12 @@ public class EmployeeController : ControllerBase
     [HttpGet("{name}")]
     [ProducesResponseType(typeof(List<EmployeeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<EmployeeResponse>>> GetEmployeeByName([FromRoute] string name)
+    public async Task<ActionResult<List<EmployeeResponse>>> GetEmployeeByName(
+        [FromRoute] string name,
+        CancellationToken ct = default)
     {
         _logger.LogInformation(">> [EmployeeController.GetEmployeeByName] Request received with name={Name}", name);
-        var result = await _queryHandler.FindByNameAsync(name);
+        var result = await _queryHandler.FindByNameAsync(name, ct);
         _logger.LogInformation("<< [EmployeeController.GetEmployeeByName] Completed");
         return Ok(result);
     }
@@ -68,7 +71,9 @@ public class EmployeeController : ControllerBase
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(CreateEmployeeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateEmployeeResponse>> CreateEmployeesFromFile(IFormFile file)
+    public async Task<ActionResult<CreateEmployeeResponse>> CreateEmployeesFromFile(
+        IFormFile file,
+        CancellationToken ct = default)
     {
         if (file == null)
         {
@@ -78,9 +83,9 @@ public class EmployeeController : ControllerBase
         _logger.LogInformation(">> [EmployeeController.CreateEmployeesFromFile] Request received with file={FileName}", file.FileName);
 
         using var reader = new StreamReader(file.OpenReadStream());
-        var content = await reader.ReadToEndAsync();
+        var content = await reader.ReadToEndAsync(ct);
         var commands = _parserService.Parse(content, file.ContentType, file.FileName);
-        var count = await _commandHandler.HandleBatchAsync(commands);
+        var count = await _commandHandler.HandleBatchAsync(commands, ct);
 
         _logger.LogInformation("<< [EmployeeController.CreateEmployeesFromFile] Completed with count={Count}", count);
         return StatusCode(StatusCodes.Status201Created, new CreateEmployeeResponse(count));
@@ -93,7 +98,9 @@ public class EmployeeController : ControllerBase
     [Consumes("application/json")]
     [ProducesResponseType(typeof(CreateEmployeeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateEmployeeResponse>> CreateEmployeesFromJson([FromBody] List<CreateEmployeeRequest> requests)
+    public async Task<ActionResult<CreateEmployeeResponse>> CreateEmployeesFromJson(
+        [FromBody] List<CreateEmployeeRequest> requests,
+        CancellationToken ct = default)
     {
         _logger.LogInformation(">> [EmployeeController.CreateEmployeesFromJson] Request received with {Count} employees", requests.Count);
 
@@ -104,7 +111,7 @@ public class EmployeeController : ControllerBase
             joined: r.Joined
         )).ToList();
 
-        var count = await _commandHandler.HandleBatchAsync(commands);
+        var count = await _commandHandler.HandleBatchAsync(commands, ct);
 
         _logger.LogInformation("<< [EmployeeController.CreateEmployeesFromJson] Completed with count={Count}", count);
         return StatusCode(StatusCodes.Status201Created, new CreateEmployeeResponse(count));
@@ -117,12 +124,14 @@ public class EmployeeController : ControllerBase
     [Consumes("text/csv")]
     [ProducesResponseType(typeof(CreateEmployeeResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<CreateEmployeeResponse>> CreateEmployeesFromCsvBody([FromBody] string csvContent)
+    public async Task<ActionResult<CreateEmployeeResponse>> CreateEmployeesFromCsvBody(
+        [FromBody] string csvContent,
+        CancellationToken ct = default)
     {
         _logger.LogInformation(">> [EmployeeController.CreateEmployeesFromCsvBody] Request received");
 
         var commands = _parserService.Parse(csvContent, "text/csv", null);
-        var count = await _commandHandler.HandleBatchAsync(commands);
+        var count = await _commandHandler.HandleBatchAsync(commands, ct);
 
         _logger.LogInformation("<< [EmployeeController.CreateEmployeesFromCsvBody] Completed with count={Count}", count);
         return StatusCode(StatusCodes.Status201Created, new CreateEmployeeResponse(count));

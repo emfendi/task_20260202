@@ -15,14 +15,14 @@ public class EmployeeCommandRepository : IEmployeeCommandRepository
         _logger = logger;
     }
 
-    public async Task<int> SaveAllAsync(IEnumerable<Employee> employees)
+    public async Task<int> SaveAllAsync(IEnumerable<Employee> employees, CancellationToken ct = default)
     {
         var employeeList = employees.ToList();
         if (employeeList.Count == 0) return 0;
 
         var entities = employeeList.Select(ToEntity).ToList();
-        await _context.Employees.AddRangeAsync(entities);
-        await _context.SaveChangesAsync();
+        await _context.Employees.AddRangeAsync(entities, ct);
+        await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Saved {Count} employees", entities.Count);
         return entities.Count;

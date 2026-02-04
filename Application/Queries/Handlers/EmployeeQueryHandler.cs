@@ -14,11 +14,11 @@ public class EmployeeQueryHandler : IEmployeeQueryHandler
         _logger = logger;
     }
 
-    public async Task<EmployeePageResponse> FindAllAsync(int page, int pageSize)
+    public async Task<EmployeePageResponse> FindAllAsync(int page, int pageSize, CancellationToken ct = default)
     {
         _logger.LogDebug("Querying all employees: page={Page}, pageSize={PageSize}", page, pageSize);
 
-        var (items, totalCount) = await _repository.GetAllAsync(page, pageSize);
+        var (items, totalCount) = await _repository.GetAllAsync(page, pageSize, ct);
         var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
         var response = new EmployeePageResponse(
@@ -33,11 +33,11 @@ public class EmployeeQueryHandler : IEmployeeQueryHandler
         return response;
     }
 
-    public async Task<List<EmployeeResponse>> FindByNameAsync(string name)
+    public async Task<List<EmployeeResponse>> FindByNameAsync(string name, CancellationToken ct = default)
     {
         _logger.LogDebug("Querying employees by name: {Name}", name);
 
-        var employees = await _repository.GetByNameAsync(name);
+        var employees = await _repository.GetByNameAsync(name, ct);
         var result = employees.Select(e => EmployeeResponse.From(e)).ToList();
 
         _logger.LogDebug("Found {Count} employee(s) with name: {Name}", result.Count, name);
